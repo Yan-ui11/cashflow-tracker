@@ -1,5 +1,6 @@
 # Apps Script 側のコードと個人データはリポジトリに載せない
 Code.gs
+Guide.gs
 *.csv
 *.xlsx
 .DS_Store
