@@ -92,6 +92,9 @@ tr.end td:first-child{color:var(--ink)}
 .go.ghost{background:var(--field);color:var(--blue)}
 .locked input.amt{background:transparent}
 
+.foot{margin:8px 0 0;text-align:center;font-size:12px;letter-spacing:0}
+.foot a{color:var(--sub);text-decoration:underline;text-underline-offset:2px}
+
 /* 下部の保存バー */
 .savebar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--glass);
   -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
@@ -162,9 +165,11 @@ tr.end td:first-child{color:var(--ink)}
     <div id="sections"></div>
 
     <section class="card">
-      <h2 style="margin-bottom:12px">全期間の推移</h2>
+      <h2 style="margin-bottom:12px">前月・当月・翌月の推移</h2>
       <div class="ov-wrap" id="ovWrap"><table id="ov"></table></div>
     </section>
+
+    <p class="foot"><a href="https://docs.google.com/spreadsheets/d/1ySHajVMBydY1zVDCesZlfN0g_pvQkTLUGdrSRjufcio/edit" target="_blank" rel="noopener">スプレッドシートを開く</a></p>
   </div>
 </main>
 
@@ -370,9 +375,7 @@ function renderStatus(){
   $('#sections').classList.toggle('locked',done);
 }
 function renderOverview(){
-  let max=cur, min=Math.min(dataMinYm(),cur);
-  entries.forEach(e=>{ if(e.ym>max) max=e.ym; });
-  const months=[]; for(let m=min; m<=max; m=nextYm(m)) months.push(m);
+  const months=[prevYm(cur),cur,nextYm(cur)];   // 表示中の月の前月・当月・翌月だけ
   const rows=[['月初の現金','start','s'],['収入','inc','pos'],['補填','comp','pos'],['支出','exp','neg'],['貯金・投資','sav','neg'],['月末所持金','all','s']];
   $('#ov').innerHTML = '<thead><tr><th></th>'+months.map(m=>`<th data-ym="${m}" class="${m===cur?'sel':''}">${Math.floor(m/100)%100}/${m%100}${confirmed(m)?' ✓':''}</th>`).join('')+'</tr></thead><tbody>'+
     rows.map(([n,k,c])=>`<tr class="${k==='all'?'end':''}"><td>${n}</td>`+months.map(m=>{
