@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="資金繰り">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<title>資金繰り表</title>
+<style>
+:root{
+  --bg:#f5f5f7; --card:#fff; --ink:#1d1d1f; --sub:#6e6e73; --line:rgba(0,0,0,.08);
+  --field:#f5f5f7; --pos:#248a3d; --neg:#d70015; --blue:#0071e3; --blue-ink:#fff;
+  --glass:rgba(245,245,247,.78); --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000;--card:#1c1c1e;--ink:#f5f5f7;--sub:#98989d;--line:rgba(255,255,255,.1);--field:#2c2c2e;
+    --pos:#30d158;--neg:#ff453a;--blue:#0a84ff;--glass:rgba(0,0,0,.72);--shadow:none}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.47 var(--sans);letter-spacing:-.01em;
+  padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+[hidden]{display:none!important}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+
+/* 固定ヘッダー: 画面の一番上に「月末時点の所持金」 */
+.top{position:sticky;top:0;z-index:10;background:var(--glass);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 16px 12px}
+.top-in{max-width:720px;margin:0 auto}
+.nav{display:flex;align-items:center;gap:4px}
+.nav .month{flex:1;text-align:center;font-size:17px;font-weight:600}
+.ib{min-width:44px;min-height:44px;border-radius:22px;color:var(--blue);font-size:22px;line-height:1;
+  transition:transform .12s ease-out,background .12s}
+.ib:active,.pill:active,.go:active,.btn:active,.pm:active{transform:scale(.96)}
+.ib:active{background:var(--line)}
+.pill{min-height:34px;padding:0 14px;border-radius:17px;background:var(--line);color:var(--blue);font-size:15px;transition:transform .12s ease-out}
+.hero{padding:2px 4px 0}
+.hero .cap{font-size:13px;color:var(--sub);letter-spacing:0}
+.hero .big{font-size:44px;line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+main{max-width:720px;margin:0 auto;padding:16px 16px 0}
+.card{background:var(--card);border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 4px;font-size:21px;line-height:1.2;font-weight:700;letter-spacing:-.02em}
+.sub{margin:0 0 8px;font-size:14px;color:var(--sub);letter-spacing:0}
+.row{display:grid;grid-template-columns:1fr minmax(120px,160px);gap:12px;align-items:center;min-height:52px;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row label{font-size:17px}
+input.amt{width:100%;min-height:44px;padding:0 12px;border:0;border-radius:12px;background:var(--field);
+  font:inherit;font-size:19px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+input.amt::placeholder{color:var(--sub);opacity:.6}
+input.amt:focus{outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 45%,transparent)}
+.in .amt{color:var(--pos)} .out .amt{color:var(--neg)}
+.sum{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:4px;padding-top:12px;color:var(--sub);font-size:15px}
+.sum b{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.startrow{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:8px;align-items:center}
+.startrow label{white-space:nowrap}
+.pm{min-height:44px;border-radius:12px;background:var(--field);font-size:17px;transition:transform .12s ease-out}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.stats div{font-size:13px;color:var(--sub)}
+.stats b{display:block;font-size:19px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.stats b.pos{color:var(--pos)} .stats b.neg{color:var(--neg)}
+.hint{margin:10px 0 0;font-size:13px;color:var(--sub);letter-spacing:0}
+.go{min-height:44px;padding:0 20px;border-radius:22px;background:var(--blue);color:var(--blue-ink);font-weight:600;transition:transform .12s ease-out}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner p{margin:0;font-size:15px;flex:1 1 200px}
+.setup label{display:block;font-size:14px;color:var(--sub);margin:12px 0 6px}
+.setup input{width:100%;min-height:48px;padding:0 14px;border:0;border-radius:12px;background:var(--field);font:inherit;color:var(--ink)}
+.setup input:focus{outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 45%,transparent)}
+.setup .go{margin-top:16px}
+.errbox{background:color-mix(in srgb,var(--neg) 10%,var(--card));color:var(--neg);border-radius:16px;padding:14px 16px;margin-bottom:16px;font-size:15px}
+.errbox button{margin-top:8px;display:block;color:var(--blue);font-weight:600;min-height:44px}
+
+.ov-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px;padding:0 20px}
+table{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+th,td{padding:10px 12px;text-align:right;border-top:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);color:var(--sub);padding-left:0;font-weight:400}
+thead th{border-top:0;font-weight:600;color:var(--sub);cursor:pointer}
+thead th.sel,td.sel{background:var(--field)}
+thead th.sel{color:var(--ink)}
+tr.end td{font-weight:700;border-top:2px solid var(--line)}
+tr.end td:first-child{color:var(--ink)}
+
+.badge{display:inline-block;margin-left:8px;padding:0 10px;border-radius:10px;font-size:12px;line-height:20px;background:var(--line);color:var(--sub);vertical-align:1px}
+.badge.done{background:color-mix(in srgb,var(--pos) 16%,transparent);color:var(--pos)}
+.go.ghost{background:var(--field);color:var(--blue)}
+.locked input.amt{background:transparent}
+
+/* 下部の保存バー */
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--glass);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+.savebar-in{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.status{flex:1;font-size:14px;color:var(--sub);letter-spacing:0;min-width:0}
+.status.dirty{color:var(--ink);font-weight:600} .status.err{color:var(--neg);font-weight:600}
+.btn{min-width:132px;min-height:50px;padding:0 24px;border-radius:25px;background:var(--blue);color:var(--blue-ink);font-size:17px;font-weight:600;transition:transform .12s ease-out,opacity .2s}
+.btn:disabled{opacity:.35;cursor:default;transform:none}
+
+@media (min-width:640px){.hero .big{font-size:56px}main{padding-top:24px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-transparency:reduce){.top,.savebar{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="nav">
+      <button class="ib" id="prev" aria-label="前の月">‹</button>
+      <div class="month" id="mlabel"></div>
+      <button class="ib" id="next" aria-label="次の月">›</button>
+      <button class="pill" id="today">今月</button>
+      <button class="ib" id="gear" aria-label="接続設定" style="font-size:20px">⚙︎</button>
+    </div>
+    <div class="hero">
+      <div class="cap">月末時点の所持金<span class="badge" id="badge" hidden></span></div>
+      <div class="big" id="endAll">—</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="error"></div>
+
+  <section class="card setup" id="setup" hidden>
+    <h2>スプレッドシートにつなぐ</h2>
+    <p class="sub">Apps Script をデプロイして得た Web アプリの URL を、この端末で最初の1回だけ入力します。</p>
+    <label for="gasUrl">Web アプリ URL</label>
+    <input id="gasUrl" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <button class="go" id="saveSetup" type="button">つなぐ</button>
+  </section>
+
+  <div id="app" hidden>
+    <section class="card in-start" id="startCard">
+      <div class="startrow">
+        <label for="startAmt" style="font-size:17px">月初の現金</label>
+        <input class="amt" id="startAmt" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" style="color:var(--ink)">
+        <button class="pm" id="pm" type="button" aria-label="プラスとマイナスを切り替え">±</button>
+      </div>
+      <p class="hint" id="startHint"></p>
+      <div class="stats">
+        <div>前月からの増減<b id="delta">¥0</b></div>
+        <div>貯金・投資に回す前<b id="preSave">¥0</b></div>
+      </div>
+    </section>
+
+    <section class="card banner" id="confirmCard" hidden>
+      <p id="confirmText"></p>
+      <button class="go" id="confirmBtn" type="button"></button>
+    </section>
+
+    <section class="card banner" id="defBanner" hidden>
+      <p id="defText">この月はまだ入力がありません。</p>
+      <button class="go" id="defBtn" type="button">初期値を入れる</button>
+    </section>
+
+    <div id="sections"></div>
+
+    <section class="card">
+      <h2 style="margin-bottom:12px">全期間の推移</h2>
+      <div class="ov-wrap" id="ovWrap"><table id="ov"></table></div>
+    </section>
+  </div>
+</main>
+
+<div class="savebar" id="savebar" hidden>
+  <div class="savebar-in">
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <button class="btn" id="save" type="button" disabled>保存</button>
+  </div>
+</div>
+
+<script>
+/* ===== 設定 ===== */
+const SECTIONS = [
+  {kind:'収入', title:'収入', cls:'in',  items:['給料','ボーナス','メルカリ']},
+  {kind:'補填', title:'補填', cls:'in',  sub:'足りない月に外から入れた分', items:['仮想通貨','投資信託','その他']},
+  {kind:'支出', title:'支出', cls:'out', items:['楽天カード','ヨドバシクレジットカード','家賃','その他']},
+  {kind:'貯金', title:'貯金・投資信託', cls:'out', sub:'お金が余った月に回す予定の分', items:['貯金もしくは投資信託']},
+];
+const START='開始', START_ITEM='月初の現金', CONFIRM='確定';
+// Apps Script の Web アプリ URL。ここに入れておくと、端末ごとの入力が不要になる(空なら画面の⚙で入力)
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw0j3oSTmU3tfwFTzk_10YoS7aehlVE3Eb5JhPIb6kUiC7mpu2zd7lRsrDbUZSZd2JyGg/exec';
+const CFG_KEY='cf_gas', DRAFT_KEY='cf_draft';
+const BATCH=200;
+
+/* ===== ユーティリティ ===== */
+const $ = s => document.querySelector(s);
+const yen = n => (n<0?'−':'')+'¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP');
+const ymOf = d => d.getFullYear()*100 + d.getMonth()+1;
+const prevYm = ym => ym%100===1 ? (Math.floor(ym/100)-1)*100+12 : ym-1;
+const nextYm = ym => ym%100===12 ? (Math.floor(ym/100)+1)*100+1 : ym+1;
+const label = ym => Math.floor(ym/100)+'年'+(ym%100)+'月';
+const keyOf = (ym,kind,item) => ym+'|'+kind+'|'+item;
+const signCls = n => n>0?'pos':n<0?'neg':'';
+/* 通常の金額: 0以上の整数のみ。月初の現金だけ符号を保持する */
+const digitsOf = s => String(s).replace(/[^0-9０-９]/g,'').replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).slice(0,12);
+const parseAmt = s => { const d=digitsOf(s); return d===''?null:parseInt(d,10); };
+const parseSigned = s => { const d=digitsOf(s); if(d==='') return null; const n=parseInt(d,10); return /^\s*[-−‐–ー]/.test(String(s))?-n:n; };
+const fmt = n => n===null?'':n.toLocaleString('ja-JP');
+
+/* ===== 状態 ===== */
+const entries = new Map();     // key -> {ym,kind,item,amount}  画面上の現在値(未保存を含む)
+const serverVals = new Map();  // key -> amount                 最後に読み込み/保存に成功した値
+const pending = new Map();     // key -> {ym,kind,item}         serverVals と食い違うキー
+let defaults = [];
+let todayYm = ymOf(new Date());   // 起動・復帰時点の「今月」。月をまたいだら更新する
+let cur = todayYm;
+let memo = new Map();
+let loaded=false, saving=false, flash='', flashErr=false, flashTimer=null, lastLoad=0;
+
+/* ===== 通信(Apps Script Web アプリ。text/plain の POST でプリフライトを避ける) ===== */
+function cfg(){   // 端末に上書き設定があればそれを優先(開発用)。なければ埋め込みの URL
+  try{ const c=JSON.parse(localStorage.getItem(CFG_KEY)||'null'); if(c&&c.url) return c; }catch(e){}
+  return GAS_URL?{url:GAS_URL}:null;
+}
+async function api(body){
+  const c=cfg(); if(!c||!c.url) throw new Error('接続先が未設定です');
+  let res;
+  try{ res=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); }
+  catch(e){ throw new Error('通信できません。電波とURLを確認してください'); }
+  let j; try{ j=JSON.parse(await res.text()); }
+  catch(e){ throw new Error('サーバーがエラーを返しました。URLとデプロイ設定(アクセス=全員)を確認してください'); }
+  if(!j.ok) throw new Error(j.error==='busy'?'混み合っています。もう一度保存してください':'保存できませんでした('+j.error+')');
+  return j;
+}
+
+/* ===== 計算 ===== */
+function dataMinYm(){ let m=Infinity; entries.forEach(e=>{ if(e.ym<m) m=e.ym; }); return m; }
+function sumKind(ym,kind){ let s=0; entries.forEach(e=>{ if(e.ym===ym&&e.kind===kind) s+=e.amount; }); return s; }
+function startOf(ym){
+  const e=entries.get(keyOf(ym,START,START_ITEM));
+  if(e) return {v:e.amount,carried:false};           // 行があれば0でも手入力として扱う
+  if(ym>dataMinYm()) return {v:endOf(prevYm(ym)).all,carried:true};
+  return {v:0,carried:true};
+}
+function endOf(ym){
+  if(memo.has(ym)) return memo.get(ym);
+  const st=startOf(ym).v, inc=sumKind(ym,'収入'), comp=sumKind(ym,'補填'), exp=sumKind(ym,'支出'), sav=sumKind(ym,'貯金');
+  const r={start:st,inc,comp,exp,sav,pre:st+inc+comp-exp,all:st+inc+comp-exp-sav};
+  memo.set(ym,r); return r;
+}
+function hasEntries(ym){ for(const e of entries.values()) if(e.ym===ym&&e.kind!==CONFIRM) return true; return false; }
+const confirmed = ym => entries.has(keyOf(ym,CONFIRM,CONFIRM));
+
+/* ===== 変更の管理(手動保存・下書き) ===== */
+function markDirty(k,meta){
+  const now=entries.has(k)?entries.get(k).amount:null;
+  const srv=serverVals.has(k)?serverVals.get(k):null;
+  if(now===srv) pending.delete(k); else pending.set(k,meta);
+}
+function writeDraft(){
+  try{
+    if(!pending.size){ localStorage.removeItem(DRAFT_KEY); return; }
+    localStorage.setItem(DRAFT_KEY,JSON.stringify([...pending.entries()].map(([k,m])=>({...m,amount:entries.has(k)?entries.get(k).amount:null}))));
+  }catch(e){}
+}
+function setAmount(ym,kind,item,amount){
+  const k=keyOf(ym,kind,item);
+  if(amount===null) entries.delete(k); else entries.set(k,{ym,kind,item,amount});
+  markDirty(k,{ym,kind,item});
+  writeDraft();           // 入力のたびに同期的に書く(iOS は裏に回ると終了イベントが届かない)
+}
+function restoreDraft(){
+  let d; try{ d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null'); }catch(e){ d=null; }
+  if(!Array.isArray(d)||!d.length) return;
+  if(!confirm('未保存の下書きが'+d.length+'件あります。復元しますか?\n(キャンセルすると破棄します)')){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} return; }
+  d.forEach(x=>{ if(Number.isInteger(x.ym)&&x.kind&&x.item) setAmount(x.ym,x.kind,x.item,x.amount===null?null:+x.amount); });
+}
+
+async function save(){
+  if(saving||!pending.size) return;
+  saving=true; setFlash('',false); renderBar();
+  const list=[...pending.entries()].map(([k,m])=>({ym:m.ym,kind:m.kind,item:m.item,amount:entries.has(k)?entries.get(k).amount:null}));
+  try{
+    for(let i=0;i<list.length;i+=BATCH){
+      const part=list.slice(i,i+BATCH);
+      await api({action:'save',entries:part});
+      part.forEach(d=>{ const k=keyOf(d.ym,d.kind,d.item);
+        if(d.amount===null) serverVals.delete(k); else serverVals.set(k,d.amount);
+        markDirty(k,{ym:d.ym,kind:d.kind,item:d.item}); });
+      writeDraft();
+    }
+    setFlash('保存しました',false,3000);
+  }catch(err){ setFlash(err.message,true); }
+  saving=false; renderBar();
+}
+
+async function loadAll(){
+  const j=await api({action:'getAll'});
+  entries.clear(); serverVals.clear(); pending.clear();
+  j.rows.forEach(r=>{ const k=keyOf(+r.ym,r.kind,r.item); entries.set(k,{ym:+r.ym,kind:r.kind,item:r.item,amount:+r.amount}); serverVals.set(k,+r.amount); });
+  defaults=Array.isArray(j.defaults)?j.defaults:[];
+  loaded=true; lastLoad=Date.now();
+}
+
+/* ===== 描画 ===== */
+function setFlash(t,err,ms){
+  flash=t; flashErr=!!err; clearTimeout(flashTimer);
+  if(ms) flashTimer=setTimeout(()=>{ flash=''; renderBar(); },ms);
+}
+function renderBar(){
+  const st=$('#status'), btn=$('#save');
+  const n=pending.size;
+  if(saving){ st.textContent='保存中…'; st.className='status'; }
+  else if(flash){ st.textContent=flash; st.className='status'+(flashErr?' err':''); }
+  else if(n){ st.textContent='未保存の変更があります('+n+'件)'; st.className='status dirty'; }
+  else { st.textContent=loaded?'スプレッドシートと同期済み':''; st.className='status'; }
+  btn.disabled=saving||!n;
+}
+function buildSections(){
+  $('#sections').innerHTML = SECTIONS.map(s=>`
+    <section class="card ${s.cls}">
+      <h2>${s.title}</h2>${s.sub?`<p class="sub">${s.sub}</p>`:''}
+      ${s.items.map(it=>`
+        <div class="row">
+          <label for="f-${s.kind}-${it}">${it}</label>
+          <input class="amt" id="f-${s.kind}-${it}" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done"
+                 data-kind="${s.kind}" data-item="${it}" placeholder="0">
+        </div>`).join('')}
+      <div class="sum"><span>${s.title}の合計</span><b data-sum="${s.kind}" class="${s.cls==='in'?'pos':'neg'}">¥0</b></div>
+    </section>`).join('');
+}
+function fillInputs(){
+  $('#mlabel').textContent=label(cur);
+  document.querySelectorAll('#sections input.amt').forEach(inp=>{
+    const e=entries.get(keyOf(cur,inp.dataset.kind,inp.dataset.item));
+    inp.value = e? fmt(e.amount) : '';
+  });
+  const se=entries.get(keyOf(cur,START,START_ITEM));
+  $('#startAmt').value = se? fmt(se.amount) : '';
+}
+function renderCalc(){
+  memo=new Map();
+  const r=endOf(cur), st=startOf(cur);
+  const big=$('#endAll'); big.textContent=yen(r.all); big.className='big '+signCls(r.all);
+  const d=$('#delta'); d.textContent=yen(r.all-r.start); d.className=signCls(r.all-r.start);
+  const p=$('#preSave'); p.textContent=yen(r.pre); p.className=signCls(r.pre);
+  const sa=$('#startAmt'); sa.placeholder = st.carried? fmt(st.v) : '0'; sa.style.color = st.v<0&&!st.carried?'var(--neg)':'var(--ink)';
+  let hint;
+  const pv=prevYm(cur), provisional=cur>dataMinYm()&&pv<todayYm&&hasEntries(pv)&&!confirmed(pv);
+  if(st.carried) hint = cur>dataMinYm()?'空欄のときは前月の月末所持金を引き継ぎます'+(provisional?'(前月は未確定のため暫定の金額です)':'')+'。':'最初の月は、実際の手元の現金を入力してください。';
+  else if(cur>dataMinYm()){   // 実際の現金と、前月末の計算値とのずれを見せる
+    const exp=endOf(prevYm(cur)).all, diff=st.v-exp;
+    hint = diff===0 ? '前月末の所持金('+yen(exp)+')と一致しています。'
+      : '前月末の所持金('+yen(exp)+')との差: '+(diff>0?'+':'')+yen(diff)+'。空欄に戻すと前月から引き継ぎます。';
+  } else hint='手入力した金額を使っています。';
+  $('#startHint').textContent = hint;
+  document.querySelectorAll('[data-sum]').forEach(el=>{ el.textContent=yen(sumKind(cur,el.dataset.sum)); });
+  // 初期値ボタン: 今月以降で、その月の入力(未保存を含む)が0件のときだけ
+  const showDef = loaded && defaults.length && cur>=ymOf(new Date()) && !hasEntries(cur);
+  $('#defBanner').hidden=!showDef;
+  if(showDef) $('#defText').textContent=label(cur)+'はまだ入力がありません。('+defaults.map(x=>x.item).join('・')+')';
+  renderStatus(); renderOverview(); renderBar();
+}
+/* 月の確定: 翌月になってから手動で行う。確定した月は金額欄が読み取り専用(月初の現金は常に編集できる) */
+function renderStatus(){
+  const done=confirmed(cur), past=cur<todayYm, has=hasEntries(cur);
+  const card=$('#confirmCard'), btn=$('#confirmBtn');
+  if(done){ card.hidden=false; $('#confirmText').textContent='✓ '+label(cur)+'は確定済みです。金額は読み取り専用です。'; btn.textContent='確定を解除'; btn.className='go ghost'; }
+  else if(past&&has){ card.hidden=false; $('#confirmText').textContent=label(cur)+'を確定できます。月末所持金は '+yen(endOf(cur).all)+' です。'; btn.textContent='確定する'; btn.className='go'; }
+  else card.hidden=true;
+  const b=$('#badge'); b.hidden=!(done||(past&&has)); b.textContent=done?'確定済み':'未確定'; b.className='badge'+(done?' done':'');
+  document.querySelectorAll('#sections input.amt').forEach(i=>{ i.readOnly=done; });
+  $('#sections').classList.toggle('locked',done);
+}
+function renderOverview(){
+  let max=cur, min=Math.min(dataMinYm(),cur);
+  entries.forEach(e=>{ if(e.ym>max) max=e.ym; });
+  const months=[]; for(let m=min; m<=max; m=nextYm(m)) months.push(m);
+  const rows=[['月初の現金','start','s'],['収入','inc','pos'],['補填','comp','pos'],['支出','exp','neg'],['貯金・投資','sav','neg'],['月末所持金','all','s']];
+  $('#ov').innerHTML = '<thead><tr><th></th>'+months.map(m=>`<th data-ym="${m}" class="${m===cur?'sel':''}">${Math.floor(m/100)%100}/${m%100}${confirmed(m)?' ✓':''}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.map(([n,k,c])=>`<tr class="${k==='all'?'end':''}"><td>${n}</td>`+months.map(m=>{
+      const v=endOf(m)[k]; const cls=c==='s'?signCls(v):(v===0?'':c);
+      return `<td class="${m===cur?'sel':''} ${cls}">${v===0&&k!=='all'&&k!=='start'?'–':yen(v)}</td>`;
+    }).join('')+'</tr>').join('')+'</tbody>';
+}
+function scrollOverview(){   // 月を切り替えたときだけ。入力中にページが飛ばないよう、表の中だけを動かす
+  const wrap=$('#ovWrap'), th=$('#ov th.sel'); if(!wrap||!th) return;
+  const w=wrap.getBoundingClientRect(), t=th.getBoundingClientRect();
+  wrap.scrollLeft += t.left-w.left-(w.width-t.width)/2;
+}
+function render(){ fillInputs(); renderCalc(); scrollOverview(); }
+
+/* ===== 入力処理 ===== */
+const app=$('#app');
+app.addEventListener('focusin',ev=>{                    // 数字入力モード: タップで全選択
+  const t=ev.target; if(!t.matches('input.amt')) return;
+  t._fresh=true; setTimeout(()=>{ try{ t.setSelectionRange(0,t.value.length); }catch(e){} },0);
+});
+app.addEventListener('mouseup',ev=>{ const t=ev.target; if(t.matches&&t.matches('input.amt')&&t._fresh){ ev.preventDefault(); t._fresh=false; }});
+app.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&ev.target.matches('input.amt')) ev.target.blur(); });
+$('#sections').addEventListener('input',ev=>{
+  const t=ev.target; if(!t.matches('input.amt')||confirmed(cur)) return;
+  setAmount(cur,t.dataset.kind,t.dataset.item,parseAmt(t.value)); renderCalc();
+});
+$('#sections').addEventListener('focusout',ev=>{ const t=ev.target; if(t.matches('input.amt')) t.value=fmt(parseAmt(t.value)); });
+$('#startAmt').addEventListener('input',ev=>{ setAmount(cur,START,START_ITEM,parseSigned(ev.target.value)); renderCalc(); });
+$('#startAmt').addEventListener('focusout',ev=>{ ev.target.value=fmt(parseSigned(ev.target.value)); });
+$('#pm').addEventListener('click',()=>{
+  const v=parseSigned($('#startAmt').value); if(v===null||v===0) return;
+  setAmount(cur,START,START_ITEM,-v); $('#startAmt').value=fmt(-v); renderCalc();
+});
+$('#defBtn').addEventListener('click',()=>{
+  defaults.forEach(d=>{ if(!entries.has(keyOf(cur,d.kind,d.item))) setAmount(cur,d.kind,d.item,d.amount); });
+  fillInputs(); renderCalc();
+});
+$('#confirmBtn').addEventListener('click',()=>{
+  if(confirmed(cur)){
+    if(!confirm(label(cur)+'の確定を解除します。金額を編集できるようになります。')) return;
+    setAmount(cur,CONFIRM,CONFIRM,null);
+  }else{
+    if(!confirm(label(cur)+'を確定します。月末所持金は '+yen(endOf(cur).all)+' です。\n金額は読み取り専用になります(あとで解除できます)。')) return;
+    setAmount(cur,CONFIRM,CONFIRM,1);
+  }
+  renderCalc(); save();   // 確定・解除は押した時点で保存する
+});
+$('#save').addEventListener('click',save);
+$('#prev').onclick=()=>{ cur=prevYm(cur); render(); };
+$('#next').onclick=()=>{ cur=nextYm(cur); render(); };
+$('#today').onclick=()=>{ todayYm=ymOf(new Date()); cur=todayYm; render(); };
+$('#ov').addEventListener('click',ev=>{ const th=ev.target.closest('th[data-ym]'); if(th){ cur=+th.dataset.ym; render(); scrollTo({top:0,behavior:'smooth'}); }});
+addEventListener('beforeunload',e=>{ if(pending.size){ e.preventDefault(); e.returnValue=''; }});
+
+/* 画面に戻ったとき: 未保存がなければ最新を読み直す */
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible') return;
+  // 月をまたいで開きっぱなしだったとき: 「今月」を見ていたなら新しい月へ進める(未保存の入力は保持される)
+  const nowYm=ymOf(new Date());
+  if(nowYm!==todayYm){ if(cur===todayYm) cur=nowYm; todayYm=nowYm; if(loaded) render(); }
+  if(!loaded||saving||pending.size) return;
+  if(Date.now()-lastLoad<5000||document.activeElement&&document.activeElement.matches&&document.activeElement.matches('input')) return;
+  try{ await loadAll(); render(); }catch(e){ /* 静かに無視。次の操作で気づける */ }
+});
+
+/* iPhone: キーボードが出たら保存バーを持ち上げる */
+if(window.visualViewport){
+  const vv=visualViewport, bar=$('#savebar');
+  const fit=()=>{ const off=innerHeight-vv.height-vv.offsetTop; bar.style.transform=off>1?`translateY(${-off}px)`:''; };
+  vv.addEventListener('resize',fit); vv.addEventListener('scroll',fit);
+}
+
+/* ===== 接続設定・起動 ===== */
+function showSetup(on){ $('#setup').hidden=!on; $('#app').hidden=on||!loaded; $('#savebar').hidden=on||!loaded; }
+if(GAS_URL) $('#gear').hidden=true;
+$('#gear').onclick=()=>{ const c=cfg()||{}; $('#gasUrl').value=c.url||''; showSetup($('#setup').hidden); };
+$('#saveSetup').onclick=()=>{
+  const url=$('#gasUrl').value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec$/.test(url)){ alert('「https://script.google.com/macros/s/…/exec」の形のURLを入力してください'); return; }
+  if(pending.size && !confirm('未保存の変更があります。接続先を変えると失われる場合があります。続けますか?')) return;
+  try{ localStorage.setItem(CFG_KEY,JSON.stringify({url})); }catch(e){ alert('この端末では設定を保存できません'); return; }
+  location.reload();
+};
+async function init(){
+  buildSections();
+  $('#mlabel').textContent=label(cur);
+  if(!cfg()){ showSetup(true); return; }
+  $('#status').textContent='読み込み中…'; $('#savebar').hidden=false;
+  try{
+    await loadAll();
+    restoreDraft();
+    $('#error').innerHTML='';
+    showSetup(false); render();
+  }catch(err){
+    $('#savebar').hidden=true;
+    $('#error').innerHTML=`<div class="errbox">${String(err.message).replace(/[<>&]/g,'')}<button type="button" id="retry">もう一度読み込む</button></div>`;
+    $('#retry').onclick=()=>location.reload();
+  }
+}
+init();
+</script>
+</body>
+</html>
